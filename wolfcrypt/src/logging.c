@@ -113,6 +113,8 @@ void wolfSSL_Debugging_OFF(void)
     /* user includes their own headers */
 #else
     #include <stdio.h>   /* for default printf stuff */
+	// ESP32
+	#include "esp_log.h"
 #endif
 
 #if defined(THREADX) && !defined(THREADX_NO_DC_PRINTF)
@@ -144,7 +146,9 @@ static void wolfssl_log(const int logLevel, const char *const logMessage)
         fprintf(_mqxio_stderr, "%s\n", logMessage);
 
 #else
-        fprintf(stderr, "%s\n", logMessage);
+        //fprintf(stderr, "%s\n", logMessage);
+		// ESP32
+		ESP_LOGI("WOLFSSL", "%s", logMessage);
 #endif
     }
 }

@@ -34,6 +34,9 @@
 #include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/cpuid.h>
 
+#include <esp_log.h>
+#include <esp_system.h>
+
 
 #ifdef HAVE_FIPS
 int wc_GenerateSeed(OS_Seed* os, byte* seed, word32 sz)
@@ -481,6 +484,8 @@ static int Hash_DRBG_Instantiate(DRBG* drbg, const byte* seed, word32 seedSz,
         ret = DRBG_SUCCESS;
     }
 
+    ESP_LOGI("RNG", "Hash_DRBG_Instantiate ret=%d", ret);
+
     return ret;
 }
 
@@ -505,6 +510,8 @@ static int Hash_DRBG_Uninstantiate(DRBG* drbg)
 int wc_InitRng_ex(WC_RNG* rng, void* heap, int devId)
 {
     int ret = RNG_FAILURE_E;
+
+    ESP_LOGI("RNG", "wc_InitRng_ex");
 
     if (rng == NULL)
         return BAD_FUNC_ARG;
@@ -550,6 +557,7 @@ int wc_InitRng_ex(WC_RNG* rng, void* heap, int devId)
 	ret = 0; /* success */
 #else
 #ifdef HAVE_HASHDRBG
+	ESP_LOGI("RNG", "HAVE_HASHDRBG");
     if (wc_RNG_HealthTestLocal(0) == 0) {
         DECLARE_VAR(entropy, byte, ENTROPY_NONCE_SZ, rng->heap);
 
@@ -570,6 +578,8 @@ int wc_InitRng_ex(WC_RNG* rng, void* heap, int devId)
         else
             ret = DRBG_FAILURE;
 
+
+        ESP_LOGI("RNG", "DRBG ret=%d", ret);
         ForceZero(entropy, ENTROPY_NONCE_SZ);
         FREE_VAR(entropy, rng->heap);
     }
@@ -1692,14 +1702,22 @@ int wc_GenerateSeed(OS_Seed* os, byte* output, word32 sz)
 
 #elif defined(NO_DEV_RANDOM)
 
-    #error "you need to write an os specific wc_GenerateSeed() here"
+    //#error "you need to write an os specific wc_GenerateSeed() here"
 
-    /*
+
     int wc_GenerateSeed(OS_Seed* os, byte* output, word32 sz)
     {
+    	int i, rnd=0;
+    	for(i=0; i<sz; i++) {
+    		if(i%4 == 0) rnd=esp_random();
+
+    		if(i%4 == 0) output[i]=((rnd&0x000000FF) >> 0);
+    		if(i%4 == 1) output[i]=((rnd&0x0000FF00) >> 8);
+    		if(i%4 == 2) output[i]=((rnd&0x00FF0000) >> 16);
+    		if(i%4 == 3) output[i]=((rnd&0xFF000000) >> 24);
+    	}
         return 0;
     }
-    */
 
 #else
 
@@ -1754,6 +1772,8 @@ int wc_GenerateSeed(OS_Seed* os, byte* output, word32 sz)
             }
         }
         close(os->fd);
+
+        ESP_LOGI("RNG", "wc_GenerateSeed ret=%d", ret);
 
         return ret;
     }

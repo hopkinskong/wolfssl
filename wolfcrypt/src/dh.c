@@ -32,6 +32,8 @@
 #include <wolfssl/wolfcrypt/error-crypt.h>
 #include <wolfssl/wolfcrypt/logging.h>
 
+#include <esp_log.h>
+
 #ifdef WOLFSSL_HAVE_SP_DH
 #include <wolfssl/wolfcrypt/sp.h>
 #endif
@@ -737,31 +739,40 @@ int wc_DhCheckPubKey(DhKey* key, const byte* pub, word32 pubSz)
     mp_int x;
     mp_int y;
 
+    ESP_LOGI("WOLFSSL", "wc_DhCheckPubKey");
+
     if (key == NULL || pub == NULL) {
+    	ESP_LOGE("WOLFSSL", "wc_DhCheckPubKey: BAD_FUNC_ARG");
         return BAD_FUNC_ARG;
     }
 
     if (mp_init_multi(&x, &y, NULL, NULL, NULL, NULL) != MP_OKAY) {
+    	ESP_LOGE("WOLFSSL", "wc_DhCheckPubKey: MP_INIT_E");
         return MP_INIT_E;
     }
 
     if (mp_read_unsigned_bin(&x, pub, pubSz) != MP_OKAY) {
+    	ESP_LOGE("WOLFSSL", "wc_DhCheckPubKey: MP_READ_E");
         ret = MP_READ_E;
     }
 
     /* pub should not be 0 or 1 */
     if (ret == 0 && mp_cmp_d(&x, 2) == MP_LT) {
+    	ESP_LOGE("WOLFSSL", "wc_DhCheckPubKey: MP_CMP_E");
         ret = MP_CMP_E;
     }
 
     /* pub shouldn't be greater than or equal to p - 1 */
     if (ret == 0 && mp_copy(&key->p, &y) != MP_OKAY) {
+    	ESP_LOGE("WOLFSSL", "wc_DhCheckPubKey: MP_INIT_E");
         ret = MP_INIT_E;
     }
     if (ret == 0 && mp_sub_d(&y, 2, &y) != MP_OKAY) {
+    	ESP_LOGE("WOLFSSL", "wc_DhCheckPubKey: MP_SUB_E");
         ret = MP_SUB_E;
     }
     if (ret == 0 && mp_cmp(&x, &y) == MP_GT) {
+    	ESP_LOGE("WOLFSSL", "wc_DhCheckPubKey: MP_CMP_E");
         ret = MP_CMP_E;
     }
 
@@ -804,8 +815,11 @@ static int wc_DhAgree_Sync(DhKey* key, byte* agree, word32* agreeSz,
     mp_int y;
     mp_int z;
 
+    ESP_LOGI("WOLFSSL", "wc_DhAgree_Sync");
+
     if (wc_DhCheckPubKey(key, otherPub, pubSz) != 0) {
         WOLFSSL_MSG("wc_DhAgree wc_DhCheckPubKey failed");
+        ESP_LOGE("WOLFSSL", "wc_DhAgree wc_DhCheckPubKey failed");
         return DH_CHECK_PUB_E;
     }
 
@@ -841,6 +855,9 @@ static int wc_DhAgree_Sync(DhKey* key, byte* agree, word32* agreeSz,
     }
 #endif
 #endif
+
+
+    ESP_LOGE("WOLFSSL", "ret=%d", ret);
 
     if (mp_init_multi(&x, &y, &z, 0, 0, 0) != MP_OKAY)
         return MP_INIT_E;
